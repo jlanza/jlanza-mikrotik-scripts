@@ -38,9 +38,11 @@
 
 # Use external DNS resolver or DNS records
 # Not used in case Cloudflare DNS Record ID is not provided
+:local useDnsRecords true
 
 #------------------------------------------------------------------------------------
-# No more changes need
+# DO NOT CHANGE ANYTHING BELOW
+#------------------------------------------------------------------------------------
 
 :set scriptName "$scriptName ($domain)"
 
@@ -99,7 +101,7 @@
 }
 
 :if ($currentIP != $previousIP) do={
-  :log info "scriptName: Current IP ($currentIP) is not equal to previous IP ($previousIP), update needed"
+  :log info "$scriptName: Current IP ($currentIP) is not equal to previous IP ($previousIP), update needed"
   :local headers "Content-type:application/json,$authHeader"
   :local payload
   :if ($keepDnsRecordDetails) do={
