@@ -44,7 +44,7 @@
 # DO NOT CHANGE ANYTHING BELOW
 #------------------------------------------------------------------------------------
 
-:set scriptName "$scriptName ($domain)"
+:local logPrefix "$scriptName ($domain)"
 
 # Get current IP
 :local currentIP 
@@ -54,7 +54,7 @@
   :set currentIP [/ip address get [find interface=$wanInterface] address];
   :set currentIP [:pick $currentIP 0 [:find $currentIP "/"]]
 } else={
-  :error [:log info "$scriptName: $inetinterface is not currently running, so therefore will not update."]
+  :error [:log info "$logPrefix: $inetinterface is not currently running, so therefore will not update."]
 }
 
 :local previousIP
@@ -78,7 +78,7 @@
       :set previousIP ($jsonData->"result"->0->"content")
     }
   } on-error {
-    :error [:log error "$scriptName: Unable to access Cloudflare servers for retrieving information"]
+    :error [:log error "$logPrefix: Unable to access Cloudflare servers for retrieving information"]
   }
 } else={
 # Resolve domain and update on IP changes. This method work only if use non proxied record.
@@ -95,13 +95,13 @@
       :set previousIP ([:deserialize from=json value=($httpResponse->"data")]->"result"->"content")
     }
   } on-error {
-    :error [:log error "$scriptName: Unable to access Cloudflare servers for retrieving information"]
+      :error [:log error "$logPrefix: Unable to access Cloudflare servers for retrieving information"]
     }
   }
 }
 
 :if ($currentIP != $previousIP) do={
-  :log info "$scriptName: Current IP ($currentIP) is not equal to previous IP ($previousIP), update needed"
+  :log info "$logPrefix: Current IP ($currentIP) is not equal to previous IP ($previousIP), update needed"
   :local headers "Content-type:application/json,$authHeader"
   :local payload
   :if ($keepDnsRecordDetails) do={
@@ -113,12 +113,12 @@
     # Not able to use PATCH as not available in RouterOS
     :local httpResponse [/tool fetch mode=https http-method=put url="$cfApiDnsRecordURL" http-header-field="$headers" http-data="$payload" as-value output=user]
     :if ($httpResponse->"status" = "finished") do={
-      :log info "$scriptName: Updated on Cloudflare with IP $currentIP"
+      :log info "$logPrefix: Updated on Cloudflare with IP $currentIP"
     }
   } on-error {
-    :error [:log error "$scriptName: Unable to access Cloudflare servers for updating information"]
+    :error [:log error "$logPrefix: Unable to access Cloudflare servers for updating information"]
   }
 } else={
-  :log info "$scriptName: IP address ($previousIP) unchanged, no update needed"
+  :log info "$logPrefix: IP address ($previousIP) unchanged, no update needed"
 }
 
