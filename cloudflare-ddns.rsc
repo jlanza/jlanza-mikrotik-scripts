@@ -36,8 +36,8 @@
 :local externalDnsResolver false
 :local dnsResolver "1.1.1.1"
 
-# Use external DNS resolver
-:local useDnsRecords false
+# Use external DNS resolver or DNS records
+# Not used in case Cloudflare DNS Record ID is not provided
 
 #------------------------------------------------------------------------------------
 # No more changes need
@@ -65,6 +65,20 @@
 :local cfApiDnsRecordsListURL "https://api.cloudflare.com/client/v4/zones/$cfZoneId/dns_records?type=A&name=$domain"
 :local authHeader "Authorization: Bearer $cfToken"
 
+:if ([:len $cfDnsId] = 0) do={
+  # Retrieve cfDnsId in case you were so lazy not to include it
+  :log info "No DNS id provided. Overriding resolver configuration and accessing DNS Records to retrieve id and IP address"
+  :do {
+    :local httpResponse [/tool fetch mode=https http-method=get url="$cfApiDnsRecordsListURL" http-header-field="$authHeader" as-value output=user]
+    :if ($httpResponse->"status" = "finished") do={
+      :local jsonData [:deserialize from=json value=($httpResponse->"data")]
+      :set cfDnsId ($jsonData->"result"->0->"id")
+      :set previousIP ($jsonData->"result"->0->"content")
+    }
+  } on-error {
+    :error [:log error "$scriptName: Unable to access Cloudflare servers for retrieving information"]
+  }
+} else={
 # Resolve domain and update on IP changes. This method work only if use non proxied record.
 :if ($dnsProxied = false and $useDnsRecords = false) do={
   :if ($externalDnsResolver) do={
@@ -74,13 +88,13 @@
   }
 } else={
   :do {
-    :local httpResponse [/tool fetch mode=https http-method=get url=$cfApiDnsRecordURL http-header-field="$authHeader" as-value output=user]
-    #:local json ($httpResponse->"data")
+      :local httpResponse [/tool fetch mode=https http-method=get url="$cfApiDnsRecordURL" http-header-field="$authHeader" as-value output=user]
     :if ($httpResponse->"status" = "finished") do={
       :set previousIP ([:deserialize from=json value=($httpResponse->"data")]->"result"->"content")
     }
   } on-error {
     :error [:log error "$scriptName: Unable to access Cloudflare servers for retrieving information"]
+    }
   }
 }
 
@@ -95,7 +109,7 @@
   }
   :do {
     # Not able to use PATCH as not available in RouterOS
-    :local httpResponse [/tool fetch mode=https http-method=put url=$cfApiDnsRecordURL http-header-field=$headers http-data=$payload as-value output=user]
+    :local httpResponse [/tool fetch mode=https http-method=put url="$cfApiDnsRecordURL" http-header-field="$headers" http-data="$payload" as-value output=user]
     :if ($httpResponse->"status" = "finished") do={
       :log info "$scriptName: Updated on Cloudflare with IP $currentIP"
     }
