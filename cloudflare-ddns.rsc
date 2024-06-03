@@ -81,20 +81,20 @@
     :error [:log error "$logPrefix: Unable to access Cloudflare servers for retrieving information"]
   }
 } else={
-# Resolve domain and update on IP changes. This method work only if use non proxied record.
-:if ($dnsProxied = false and $useDnsRecords = false) do={
-  :if ($externalDnsResolver) do={
-    :set previousIP [:resolve domain-name=$domain server=$dnsResolver]
-  } else={
-    :set previousIP [:resolve domain-name=$domain]
-  }
-} else={
-  :do {
-      :local httpResponse [/tool fetch mode=https http-method=get url="$cfApiDnsRecordURL" http-header-field="$authHeader" as-value output=user]
-    :if ($httpResponse->"status" = "finished") do={
-      :set previousIP ([:deserialize from=json value=($httpResponse->"data")]->"result"->"content")
+  # Resolve domain and update on IP changes. This method work only if use non proxied record.
+  :if ($dnsProxied = false and $useDnsRecords = false) do={
+    :if ($externalDnsResolver) do={
+      :set previousIP [:resolve domain-name=$domain server=$dnsResolver]
+    } else={
+      :set previousIP [:resolve domain-name=$domain]
     }
-  } on-error {
+  } else={
+    :do {
+      :local httpResponse [/tool fetch mode=https http-method=get url="$cfApiDnsRecordURL" http-header-field="$authHeader" as-value output=user]
+      :if ($httpResponse->"status" = "finished") do={
+        :set previousIP ([:deserialize from=json value=($httpResponse->"data")]->"result"->"content")
+      }
+    } on-error {
       :error [:log error "$logPrefix: Unable to access Cloudflare servers for retrieving information"]
     }
   }
