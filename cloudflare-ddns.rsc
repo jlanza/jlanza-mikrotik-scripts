@@ -62,7 +62,7 @@
 
 # Cloudflare API URL
 :local cfApiDnsRecordURL "https://api.cloudflare.com/client/v4/zones/$cfZoneId/dns_records/$cfDnsId"
-:local cfApiDnsRecordsListURL "https://api.cloudflare.com/client/v4/zones/$cfZoneId/dns_records/type=A&name=$domain"
+:local cfApiDnsRecordsListURL "https://api.cloudflare.com/client/v4/zones/$cfZoneId/dns_records?type=A&name=$domain"
 :local authHeader "Authorization: Bearer $cfToken"
 
 # Resolve domain and update on IP changes. This method work only if use non proxied record.
