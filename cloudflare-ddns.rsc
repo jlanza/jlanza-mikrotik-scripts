@@ -98,10 +98,14 @@
 } else={
   # Resolve domain and update on IP changes. This method work only if use non proxied record.
   :if ($dnsProxied = false and $useDnsRecords = false) do={
-    :if ($externalDnsResolver) do={
-      :set previousIP [:resolve domain-name=$domain server=$dnsResolver]
-    } else={
-      :set previousIP [:resolve domain-name=$domain]
+    :do {
+      :if ($externalDnsResolver) do={
+        :set previousIP [:resolve domain-name=$domain server=$dnsResolver]
+      } else={
+        :set previousIP [:resolve domain-name=$domain]
+      }
+    } on-error {
+      :log warning "$logPrefix: Unable to locally resolve DNS name."
     }
   } else={
     :do {
