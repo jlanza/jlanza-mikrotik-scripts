@@ -32,6 +32,7 @@
 
 # Set the name of interface where get the internet public IP
 :local wanInterface "ether1"
+:local externalIpLookup false
 
 :local externalDnsResolver false
 :local dnsResolver "1.1.1.1"
@@ -48,13 +49,27 @@
 
 # Get current IP
 :local currentIP 
-# Check interface is running
-:if ([/interface get $wanInterface value-name=running]) do={
-  # Get IP address and strip netmask
-  :set currentIP [/ip address get [find interface=$wanInterface] address];
-  :set currentIP [:pick $currentIP 0 [:find $currentIP "/"]]
-} else={
-  :error [:log info "$logPrefix: $inetinterface is not currently running, so therefore will not update."]
+:if ($externalIpLookup) do={
+  :do {
+    :local httpResponse [/tool fetch mode=https http-method=get url="https://myip.wtf/text" as-value output=user]
+    :if ($httpResponse->"status" = "finished") do={
+      # Remove \n included in response message
+      :set currentIP [:pick ($httpResponse->"data") 0 ([:len ($httpResponse->"data")] - 1)]
+    }
+  } on-error {
+    :log warning "$scriptName: Unable to retrieve address from external service. Fallback to use locally retrieved."
+  }
+}
+
+:if ([:len $currentIP] = 0) do={
+  # Check interface is running
+  :if ([/interface get $wanInterface value-name=running]) do={
+    # Get IP address and strip netmask
+    :set currentIP [/ip address get [find interface=$wanInterface] address];
+    :set currentIP [:pick $currentIP 0 [:find $currentIP "/"]]
+  } else={
+    :error [:log error "$logPrefix: $inetinterface is not currently running, so therefore will not update."]
+  }
 }
 
 :local previousIP
